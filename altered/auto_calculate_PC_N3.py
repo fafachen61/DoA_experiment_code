@@ -8,11 +8,11 @@ from matplotlib.animation import FuncAnimation
 from scipy.interpolate import interp1d
 import scipy
  
-MQTT_SERVER = "192.168.50.117" #specify the broker address, it can be IP of raspberry pi or simply localhost
-MQTT_PATH = "test" #this is the name of topic, like temp
-MQTT_PATH1 = "test1"
-MQTT_PATH2 = "test2"
-MQTT_PATH3 = "test3"
+MQTT_SERVER = "192.168.50.60" #specify the broker address, it can be IP of raspberry pi or simply localhost
+MQTT_PATH = "temp0" #this is the name of topic, like temp
+MQTT_PATH1 = "temp1"
+MQTT_PATH2 = "temp2"
+MQTT_PATH3 = "temp3"
 MQTTlist = [MQTT_PATH, MQTT_PATH1, MQTT_PATH2, MQTT_PATH3]
 password = "raspberry"
 
@@ -25,25 +25,20 @@ positiony = collections.deque(maxlen=10000)
 angleturn2 = 0
 angleturn3 = 0
 
-def on_connect(client, userdata, flags, rc):# The callback for when the client receives a CONNECT response from the server.
-    
+def on_connect(client, userdata, flags, rc):# The callback for when the client receives a CONNECT response from the server.   
     for i in range (0, N, 1):
         client.subscribe(MQTTlist[i])
-        print("Connected with result code"+str(rc))
+        print("Connected with result code "+str(rc))
     
 def reversefunc(phi):
-
-    data2 = pd.read_excel('C/Users/chenfayu/Documents/@@台灣大學電機系＿三上專題研究/演算法/code/ground_truth.xlsx')
+    data2 = pd.read_excel('/Users/chenfayu/Documents/@@台灣大學電機系＿三上專題研究/演算法/DoA_experiment_code/ground_truth.xlsx')
     x = np.linspace(0, 50, 51)
     y = data2.iloc[x, 2]
     f = interp1d(y, x, kind = 'linear', fill_value='extrapolate')  # radial basis function interpolator instance
-    # print(f)
-    di = f(phi)   # interpolated values
-    # print(di)
+    di = f(phi)
     return di
  
-def on_message(client, userdata, msg):# The callback for when a PUBLISH message is received from the server_4 anchors.
-      
+def on_message(client, userdata, msg):# The callback for when a PUBLISH message is received from the server_4 anchors.     
     if msg.topic == MQTT_PATH:
         # print(msg.topic, msg.payload)
         ratio0.append(msg.payload)
@@ -58,13 +53,12 @@ def on_message(client, userdata, msg):# The callback for when a PUBLISH message 
         ratio3.append(msg.payload)
 
 def positioning(ratio0, ratio1, ratio2, ratio3, Position, angleturn0, angleturn1, angleturn2, angleturn3, N):#positioning algoritm by pseudoinverse_4 anchors    
-
     answerx = []
     answery = []
     final = []
 
     while len(ratio0) == 0:
-        time.sleep(10)
+        time.sleep(100)
     func = reversefunc(ratio0.popleft())
     if func > 50:
         func = 50
@@ -175,12 +169,11 @@ def animation(i):#animation fuction for positioning
         time.sleep(10)
 
 N = 3
-
 angleturn0 = int(input('please input anchor0 angle turn:'))#input anchor0 angle turn
 angleturn1 = int(input('please input anchor1 angle turn:'))#input anchor1 angle turn
 angleturn2 = int(input('please input anchor2 angle turn:'))#input anchor2 angle turn
-    
-x0, y0 = map(int, input('please input anchor0 position:').split())#input anchor0 Position
+
+x0, y0 = map(float, input('please input anchor0 position:').split())#input anchor0 Position
 x1, y1 = map(float, input('please input anchor1 position:').split())#input anchor1 Position
 x2, y2 = map(float, input('please input anchor2 position:').split())#input anchor2 Position
 
@@ -189,7 +182,11 @@ print(Position)
 
 client = receive.Client()#MQTT subscriber function
 client.connect(MQTT_SERVER, 1883, 60)
+
+print('----------connecting----------')
 client.on_connect = on_connect
+time.sleep(2000)
+
 client.on_message = on_message
 client.loop_start()
  
@@ -202,8 +199,7 @@ time.sleep(5)
 plt.scatter(y1/2, y1/2, s = 60, marker = '+', color = 'black', alpha = 1)
 plt.scatter(Position[0][0], Position[0][1], s = 400, marker = '*')
 plt.scatter(Position[1][0], Position[1][1], s = 400, marker = '*')
-if N >= 3:
-    plt.scatter(Position[2][0], Position[2][1], s = 400, marker = '*')
+plt.scatter(Position[2][0], Position[2][1], s = 400, marker = '*')
 plt.gca().set_aspect('equal', adjustable='box')
 plt.grid()
 plt.xlabel('X(M)')
